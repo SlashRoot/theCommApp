@@ -1,4 +1,4 @@
-from comm import comm_settings
+from what_apps.comm import comm_settings
 import json
 
 TYPICAL_TWILIO_REQUEST = {

@@ -61,11 +61,11 @@ from what_apps.contact.models import PhoneProvider, DialList, ContactInfo, \
 from what_apps.do import config
 from what_apps.people import config
 from what_apps.people.models import UserProfile, UserInGroup
+from what_apps.slashroot.config import set_up as slashroot_set_up
 from what_apps.utility.models import FixedObject
 import json
 import what_apps.do.config as do_config
 import what_apps.mellon.config as mellon_config
-import what_apps.people.config as people_config
 
 
 
@@ -799,7 +799,7 @@ class CallDocumentationTests(TestCase):
         command_list = response_to_tropo_voicemail_request_dict['tropo']
         record_command = find_command_in_tropo_command_list(command_list, command_name="record")
         url = record_command['record']['url']
-        test_recording_file = '%s/apps/comm/test-call-recording.mp3' % settings.PROJECT_ROOT
+        test_recording_file = '%s/what_apps/comm/test-call-recording.mp3' % settings.PROJECT_ROOT
         
         f = open(test_recording_file)
         response = self.client.post(url, {'filename': f})
@@ -822,7 +822,7 @@ class CallDocumentationTests(TestCase):
         command_list = response_to_tropo_voicemail_request_dict['tropo']
         record_command = find_command_in_tropo_command_list(command_list, command_name="record")
         url = record_command['record']['url']
-        test_recording_file = '%s/apps/comm/test-call-recording.mp3' % settings.PROJECT_ROOT
+        test_recording_file = '%s/what_apps/comm/test-call-recording.mp3' % settings.PROJECT_ROOT
                 
         f = open(test_recording_file)
         response = self.client.post(url, {'filename': f})
@@ -863,7 +863,7 @@ class CallDocumentationTests(TestCase):
         command_list = response_to_tropo_voicemail_request_dict['tropo']
         record_command = find_command_in_tropo_command_list(command_list, command_name="record")
         url = record_command['record']['url']
-        test_recording_file = '%s/apps/comm/test-call-recording.mp3' % settings.PROJECT_ROOT
+        test_recording_file = '%s/what_apps/comm/test-call-recording.mp3' % settings.PROJECT_ROOT
         
         f = open(test_recording_file)
         response = self.client.post(url, {'filename': f})
@@ -884,7 +884,7 @@ class CallManagementExperience(TestCase):
         admin.set_password('admin')
         admin.save()
         set_up_providers(self)
-        people_config.set_up()
+        slashroot_set_up()
 
     def test_watch_calls_200(self):
         self.client.login(username="admin", password="admin")
@@ -940,7 +940,7 @@ class OutgoingCalls(TestCase):
     We're no longer answering the phone; now we need to initiate a call.
     '''
     def setUp(self):
-        people_config.set_up()
+        slashroot_set_up()
     
     def test_outgoing_call_menu_200(self):
         p = PhoneNumber.objects.create(number="5551231234")
