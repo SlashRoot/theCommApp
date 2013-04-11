@@ -81,10 +81,9 @@ TODO: Uncouple from Tropo
     
     return HttpResponseRedirect(task.get_absolute_url())
 @permission_required('comm.change_phonecall')
-def watch_calls(request):n
+def watch_calls(request):
     
-    
-    calls=PhoneCall.objects.filter(dial=False).order_by('created').reverse()
+    calls = PhoneCall.objects.filter(dial=False).order_by('created').reverse()
     paginator = Paginator(calls, 15)
     
     page = request.GET.get('page')
