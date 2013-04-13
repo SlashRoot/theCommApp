@@ -11,7 +11,6 @@ from django.contrib.auth.decorators import permission_required
 from django.db.models.signals import post_save
 from django.shortcuts import render
 from django.utils.datastructures import MultiValueDictKeyError
-from what_apps.push.functions import push_with_template
 from what_apps.contact.models import PhoneNumber, PhoneProvider, DialList
 from what_apps.do.models import Task, TaskPrototype, TaskRelatedObject, \
     TaskAccessPrototype, TaskAccess

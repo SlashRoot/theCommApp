@@ -373,7 +373,7 @@ def notifyCallSave(instance, **kwargs):
                 raise
     if instance.__class__ == CommunicationInvolvement:
         call = instance.communication.phonecall #TODO: This will break when we introduce non-phonecall CommunicationInvolvement objects.
-    push_with_template('comm/call_alert.html', {'call': call}, "/incomingCall")
+    #push_with_template('comm/call_alert.html', {'call': call}, "/incomingCall")
 
 post_save.connect(notifyCallSave, sender=PhoneCall)
 post_save.connect(notifyCallSave, sender=CommunicationInvolvement)
