@@ -66,6 +66,7 @@ from what_apps.utility.models import FixedObject
 import json
 import what_apps.do.config as do_config
 import what_apps.mellon.config as mellon_config
+from what_apps.contact.factories import PhoneNumberFactory
 
 
 
@@ -268,13 +269,24 @@ class IncomingCallInformationHandling(TestCase):
 class CallerInitialExperience(TestCase):
     def setUp(self):
         prepare_testcase_for_answer_tests(self)
-
+    
     def test_twilio_greeting(self):
         '''
     Tests that the greeting is equal to the say command
         '''
         self.assertEqual(self.twilio_response_object.verbs[0].name, 'Say')
         self.assertEqual(self.twilio_response_object.verbs[0].body, SLASHROOT_EXPRESSIONS['public_greeting'])
+    
+    def test_spam_number_is_hung_up_upon(self):
+        spam_caller = PhoneNumberFactory.create(number="001-001-0123", spam=True)
+        request_dict = TYPICAL_TWILIO_REQUEST.copy()
+        request_dict['From'] = request_dict['Caller'] = "+10010010123"
+        request_dict['CallSid'] = "DefinitelyNotTheSameCallBLAHBLAHblahblah"
+        request = FakeRequest(data=request_dict)
+        
+        response = answer(request)
+        
+        self.assertEqual(response._container[0].verbs[0].name, "Reject")
         
     def test_twilio_answer_second_command_dial(self):
         '''

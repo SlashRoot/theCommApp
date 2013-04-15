@@ -15,15 +15,13 @@ from what_apps.push.functions import push_with_template
 from what_apps.utility.models import FixedObject
 
 
-
-
-
 class Communication(models.Model):
     '''
     A single instance of communication - a phone call, email, etc.
     '''
     created = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True, null=True)
+
 
 class CommunicationInvolvement(models.Model):
     '''
@@ -70,6 +68,7 @@ class CommunicationInvolvement(models.Model):
         if self.direction == "from":
             return "%s called " % (self.person.userprofile.user.first_name)
 
+
 class PhoneCallQuerySet(QuerySet):
     def involving(self, user_list=None, include_from=True, include_to=True, subtractive=False):
         '''
@@ -111,6 +110,7 @@ class PhoneCallQuerySet(QuerySet):
             return calls_with_recordings
         else:
             return calls_with_recordings.filter(tasks__tags__name="voicemail")
+
 
 class PhoneCall(Communication):
     '''
@@ -277,6 +277,7 @@ class PhoneCall(Communication):
         resolve_task = self.resolve_task()
         return status_is_changed
 
+
 class PhoneCallRecording(models.Model):
     '''
     Tracks the audio recording of a telephone call.
@@ -319,6 +320,7 @@ class VoiceMailBox(models.Model):
        count = self.number
        return count
 
+
 class PhoneCallEvent(object):
     '''
     Not a model.
@@ -348,12 +350,10 @@ class PhoneCallEvent(object):
             summary = "caller hung up"
         return summary
 
-
-
-
 #TODO: Move this stuff elsewhere.  Maybe the .save() method.
 
 RESOLVE_PHONE_CALL = "TaskPrototype__resolve_phone_call"
+
 
 def notifyCallSave(instance, **kwargs):
     '''

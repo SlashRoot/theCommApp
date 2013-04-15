@@ -150,6 +150,14 @@ class CallResponse(object):
                 recording_kwargs['transcription'] = {'id':kwargs['call_id'], "url":"%s/comm/transcription_handler/%s/%s/" % ((resources.COMM_DOMAIN,) + recording_url_args)}
             self.response_object.record(**recording_kwargs)
     
+    def reject(self):
+        if self.provider.name == "Twilio":
+            self.response_object.reject()
+        else:
+            raise NotImplementedError("Twilio only for the moment.")
+            
+        
+    
     def hangup(self, *args, **kwargs):
         self.response_object.hangup(*args, **kwargs)
 
