@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import *
+from django.conf.urls import patterns
 
 urlpatterns = patterns('what_apps.comm.provider_views',
     #Views meant to be accessed by providers.

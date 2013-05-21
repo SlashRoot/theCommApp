@@ -190,8 +190,11 @@ def standardize_call_info(request, provider=None):
             from_caller_id = s.dict['from']['id']
             to_caller_id = s.dict['to']['id']
             status = s.state if "state" in s.dict else "ringing"        
-        except KeyError, e:
-            if e.message == "session":
+        except KeyError:
+            '''
+            e.message has been deprecated in lieu of wrapping a str() around KeyError
+            '''
+            if str(KeyError) == "session":                
                 json_post_data = json.loads(request.raw_post_data)
                 call_id = json_post_data['result']['sessionId']
                 try:
