@@ -1,19 +1,20 @@
 
-from . import comm_settings
-from .models import PhoneCall
+import comm_settings
+from the_comm_app.models import PhoneCall
 from django.http import HttpResponse
 from django.utils.datastructures import MultiValueDictKeyError
-from private import API_tokens, resources
-from tropo import Session, Tropo
-from twilio import twiml, util
-from twilio.rest import TwilioRestClient
-from twisted.internet import reactor
-from twisted.internet.task import deferLater
-from twisted.internet.threads import deferToThread
-from what_apps.contact.models import PhoneProvider, PhoneNumber
+# from private import API_tokens, resources
+# from tropo import Session, Tropo
+# from twilio import twiml, util
+# from twilio.rest import TwilioRestClient
+# from twisted.internet import reactor
+# from twisted.internet.task import deferLater
+# from twisted.internet.threads import deferToThread
+# from what_apps.contact.models import PhoneProvider, PhoneNumber
 import json
 import logging
-import requests
+from tropo import Tropo
+# import requests
 
 
 

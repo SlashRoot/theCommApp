@@ -1,18 +1,37 @@
-from django.contrib.auth.models import User
-from django.contrib.contenttypes import generic
+from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import MultipleObjectsReturned
+
 from django.db import models
 from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.db.models.signals import post_save
 from itertools import chain
-from model_utils.managers import PassThroughManager
-from taggit.managers import TaggableManager
-from what_apps.comm import comm_settings
-from what_apps.do.models import Task, TaskRelatedObject, TaskAccess
-from what_apps.push.functions import push_with_template
-from what_apps.utility.models import FixedObject
+
+# from what_apps.comm import comm_settings
+# from what_apps.do.models import Task, TaskRelatedObject, TaskAccess
+
+from django.contrib.contenttypes.fields import GenericRelation
+
+auth_user_model = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
+
+
+class PhoneProvider(models.Model):
+    name = models.CharField(max_length=40, unique=True)
+    description = models.TextField()
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __unicode__(self):
+        return self.name
+
+    def get_response_object(self):
+        if self.name == "Twilio":
+            from twilio import twiml
+            return twiml.Response()
+
+        if self.name == "Tropo":
+            from tropo import Tropo
+            return Tropo()
 
 
 class Communication(models.Model):
@@ -28,7 +47,7 @@ class CommunicationInvolvement(models.Model):
     People are involved in communication in different ways depending on the medium, the circumstances, and sometimes the actual people.
     This model will help us sort out the ways that people are involved in an instance of communication.
     '''
-    person = models.ForeignKey(User, related_name="communications")
+    person = models.ForeignKey(auth_user_model)
     communication = models.ForeignKey(Communication, related_name="participants")
 
     #This is an interesting piece of knowledge to try to store.
@@ -124,20 +143,15 @@ class PhoneCall(Communication):
     I'm having some trouble wrapping my head around which fields can be blank / null.
     I want this model to be useful outside twilio, and perhaps even manually useful.
     '''
-    service = models.ForeignKey('contact.PhoneProvider') #How was this call made?
+    service = models.ForeignKey(PhoneProvider) #How was this call made?
     call_id = models.CharField(max_length=40, unique=True) #A unique call identifier (from the carrier API)
     account_id = models.CharField(max_length=40, blank=True, null=True) #An account number (from the carrier API)
     dial = models.BooleanField() #Is this a "dial call"?
     related_call = models.ForeignKey("self", blank=True, null=True, related_name="related_calls") #For example, if this is a dial
-    from_number = models.ForeignKey('contact.PhoneNumber', related_name="calls_from", help_text="Literally the number that dialed to initiate the call")
-    to_number = models.ForeignKey('contact.PhoneNumber', related_name="calls_to", help_text="Literally the number that was dialed to initiate the call")
+#     from_number = models.ForeignKey('contact.PhoneNumber', related_name="calls_from", help_text="Literally the number that dialed to initiate the call")
+#     to_number = models.ForeignKey('contact.PhoneNumber', related_name="calls_to", help_text="Literally the number that was dialed to initiate the call")
 
     ended = models.DateTimeField(blank=True, null=True, help_text="When the from_number hung up.")
-
-    tasks = generic.GenericRelation('do.TaskRelatedObject')
-    notices = generic.GenericRelation('social.DrawAttention')
-
-    objects = PassThroughManager.for_queryset_class(PhoneCallQuerySet)()
 
     def __unicode__(self):
         if self.from_user():
@@ -290,7 +304,7 @@ class PhoneCallRecording(models.Model):
     audio_file = models.FileField(blank=True, null=True, upload_to="nowhere", editable=False)
     created = models.DateTimeField(auto_now_add=True)
 
-    tags = TaggableManager()
+#     tags = TaggableManager()
 
     def get_audio_file_url(self):
         '''

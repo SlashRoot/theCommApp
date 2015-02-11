@@ -1,25 +1,23 @@
 '''
 Service-specific functionality.  Any operations that are bound to specific providers belongs here.
 '''
-from . import comm_settings
-from .comm_settings import SLASHROOT_EXPRESSIONS
-from .models import PhoneCall
-from .response import CallResponse
-from .rest import SLASHROOT_TWILIO_ACCOUNT
-from Crypto.Random.random import choice
+import comm_settings
+from comm_settings import SLASHROOT_EXPRESSIONS
+from the_comm_app.models import PhoneCall, PhoneProvider
+from response import CallResponse
+from rest import SLASHROOT_TWILIO_ACCOUNT
+from random import choice
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render
-from private import API_tokens, resources
-from tropo import Result, Session
+
 from twilio import util, twiml
 from twilio.rest import TwilioRestClient
-from twisted.internet.threads import deferToThread
-from what_apps.contact.models import PhoneProvider, PhoneNumber
+
+# from what_apps.contact.models import PhoneProvider, PhoneNumber
 import json
 import logging
-import requests
-import urllib2
+from tropo import Session
 
 
 

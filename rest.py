@@ -1,5 +1,9 @@
-from private import API_tokens, resources
+# from private import API_tokens, resources
 from twilio.rest import TwilioRestClient
+
+class API_tokens:
+    TWILIO_SID = "llamas"
+    TWILIO_AUTH_TOKEN = "dingos"
 
 SLASHROOT_TWILIO_ACCOUNT = TwilioRestClient(API_tokens.TWILIO_SID, API_tokens.TWILIO_AUTH_TOKEN)
 

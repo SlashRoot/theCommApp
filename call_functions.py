@@ -3,19 +3,21 @@ Functions for extracting information from SIP / VOIP calls.
 Attempts to be less gnostic with providers and rely instead on the implementations in services.py
 '''
 
-from . import comm_settings
-from .models import PhoneCall, CommunicationInvolvement
-from .services import place_deferred_outgoing_conference_call, \
+import comm_settings
+from the_comm_app.models import PhoneCall, CommunicationInvolvement
+from services import place_deferred_outgoing_conference_call, \
     get_phone_calls_by_phone_number
 from django.contrib.auth.decorators import permission_required
 from django.db.models.signals import post_save
 from django.shortcuts import render
 from django.utils.datastructures import MultiValueDictKeyError
-from what_apps.contact.models import PhoneNumber, PhoneProvider, DialList
-from what_apps.do.models import Task, TaskPrototype, TaskRelatedObject, \
-    TaskAccessPrototype, TaskAccess
-from what_apps.people.models import UserProfile
-from what_apps.utility.models import FixedObject
+
+# from what_apps.contact.models import PhoneNumber, PhoneProvider, DialList
+# from what_apps.do.models import Task, TaskPrototype, TaskRelatedObject, \
+#     TaskAccessPrototype, TaskAccess
+# from what_apps.people.models import UserProfile
+# from what_apps.utility.models import FixedObject
+
 import datetime
 import json
 import logging

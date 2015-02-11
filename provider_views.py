@@ -3,11 +3,11 @@ Handles requests made by provider entities, such as Twilio and Tropo.
 
 These views are not meant to be accessed directly by humans.
 '''
-from .call_functions import call_object_from_call_info, \
+from call_functions import call_object_from_call_info, \
     place_conference_call_to_dial_list, proper_verbage_for_final_call_connection
-from .comm_settings import SLASHROOT_EXPRESSIONS
-from .models import PhoneCall, CommunicationInvolvement, PhoneCallRecording
-from .services import get_provider_and_response_for_request, \
+from comm_settings import SLASHROOT_EXPRESSIONS
+from the_comm_app.models import PhoneCall, CommunicationInvolvement, PhoneCallRecording
+from services import get_provider_and_response_for_request, \
     standardize_call_info, random_tropo_voice, \
     discern_destination_from_tropo_request, \
     discern_intention_to_connect_from_answerer, extract_transcription_as_text, \
@@ -17,10 +17,10 @@ from django.core.mail.message import EmailMultiAlternatives
 from django.http import HttpResponseNotAllowed
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from twisted.internet import reactor
-from what_apps.contact.models import DialList, PhoneNumber
-from what_apps.people.models import UserProfile
-from what_apps.utility.models import FixedObject
+
+# from what_apps.contact.models import DialList, PhoneNumber
+# from what_apps.people.models import UserProfile
+# from what_apps.utility.models import FixedObject
 import datetime
 import logging
 
