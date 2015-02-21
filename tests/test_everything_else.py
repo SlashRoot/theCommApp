@@ -50,7 +50,7 @@ from the_comm_app.models import PhoneCall, CommunicationInvolvement
 from provider_views import answer, alert_pickup, conference_blast, \
     pickup_connect, voicemail, transcription_handler, handle_hangup
 from sample_requests import *
-from services import find_command_in_tropo_command_list, standardize_call_info, \
+from the_comm_app.services import find_command_in_tropo_command_list, standardize_call_info, \
     find_command_in_twilio_response
 from django.contrib.auth.models import User
 from django.test import TestCase

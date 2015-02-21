@@ -16,24 +16,6 @@ from django.contrib.contenttypes.fields import GenericRelation
 auth_user_model = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
-class PhoneProvider(models.Model):
-    name = models.CharField(max_length=40, unique=True)
-    description = models.TextField()
-    created = models.DateTimeField(auto_now_add=True)
-
-    def __unicode__(self):
-        return self.name
-
-    def get_response_object(self):
-        if self.name == "Twilio":
-            from twilio import twiml
-            return twiml.Response()
-
-        if self.name == "Tropo":
-            from tropo import Tropo
-            return Tropo()
-
-
 class Communication(models.Model):
     '''
     A single instance of communication - a phone call, email, etc.
@@ -88,6 +70,39 @@ class CommunicationInvolvement(models.Model):
             return "%s called " % (self.person.userprofile.user.first_name)
 
 
+class PhoneProvider(object):
+    name = models.CharField(max_length=40, unique=True)
+    
+    CHOICES_DICT = {
+               "Twilio": 0,
+               "Tropo": 1,
+               }
+    
+    CHOICES = ((v, k) for k, v in CHOICES_DICT.items())
+
+    def __init__(self, provider_name, *args, **kwargs):
+        self.name = provider_name
+        super(PhoneProvider, self).__init__(*args, **kwargs)
+
+    def __unicode__(self):
+        return self.name
+    
+    @property
+    def int(self):
+        return self.CHOICES_DICT[self.name]
+
+    def get_response_object(self):
+        if self.name == "Twilio":
+            from twilio import twiml
+            return twiml.Response()
+
+        if self.name == "Tropo":
+            from tropo import Tropo
+            return Tropo()
+
+
+
+
 class PhoneCallQuerySet(QuerySet):
     def involving(self, user_list=None, include_from=True, include_to=True, subtractive=False):
         '''
@@ -129,7 +144,7 @@ class PhoneCallQuerySet(QuerySet):
             return calls_with_recordings
         else:
             return calls_with_recordings.filter(tasks__tags__name="voicemail")
-
+        
 
 class PhoneCall(Communication):
     '''
@@ -143,10 +158,9 @@ class PhoneCall(Communication):
     I'm having some trouble wrapping my head around which fields can be blank / null.
     I want this model to be useful outside twilio, and perhaps even manually useful.
     '''
-    service = models.ForeignKey(PhoneProvider) #How was this call made?
+    service = models.IntegerField(choices=PhoneProvider.CHOICES)  # How was this call made?
     call_id = models.CharField(max_length=40, unique=True) #A unique call identifier (from the carrier API)
     account_id = models.CharField(max_length=40, blank=True, null=True) #An account number (from the carrier API)
-    dial = models.BooleanField() #Is this a "dial call"?
     related_call = models.ForeignKey("self", blank=True, null=True, related_name="related_calls") #For example, if this is a dial
 #     from_number = models.ForeignKey('contact.PhoneNumber', related_name="calls_from", help_text="Literally the number that dialed to initiate the call")
 #     to_number = models.ForeignKey('contact.PhoneNumber', related_name="calls_to", help_text="Literally the number that was dialed to initiate the call")
@@ -363,31 +377,3 @@ class PhoneCallEvent(object):
         if self.type == "ended":
             summary = "caller hung up"
         return summary
-
-#TODO: Move this stuff elsewhere.  Maybe the .save() method.
-
-RESOLVE_PHONE_CALL = "TaskPrototype__resolve_phone_call"
-
-
-def notifyCallSave(instance, **kwargs):
-    '''
-    When phone calls are saved, push to watch_calls
-    '''
-    if instance.__class__ == PhoneCall:
-        call = instance
-
-        if kwargs['created']:
-            resolve_protoype = FixedObject.objects.get(name=RESOLVE_PHONE_CALL).object
-            resolve_task = resolve_protoype.instantiate()
-            resolve_relationship = TaskRelatedObject.objects.create(task = resolve_task, object = call)
-            try:
-                access = TaskAccess.objects.create(task=resolve_task, prototype = FixedObject.objects.get(name="TaskAccessPrototype__answer_phone_calls").object)
-            except FixedObject.DoesNotExist:
-                #TODO: The FixedObject isn't in the DB yet.  Run the setup.
-                raise
-    if instance.__class__ == CommunicationInvolvement:
-        call = instance.communication.phonecall #TODO: This will break when we introduce non-phonecall CommunicationInvolvement objects.
-    #push_with_template('comm/call_alert.html', {'call': call}, "/incomingCall")
-
-post_save.connect(notifyCallSave, sender=PhoneCall)
-post_save.connect(notifyCallSave, sender=CommunicationInvolvement)
