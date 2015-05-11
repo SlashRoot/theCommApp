@@ -41,7 +41,9 @@ This is generally not so with the other apps - this is likely the most difficult
 
 '''
 
-
+from django.contrib.auth.models import User
+from django.test import TestCase
+import pytest
 
 from call_functions import call_object_from_call_info, \
     place_conference_call_to_dial_list
@@ -49,12 +51,10 @@ from comm_settings import SLASHROOT_EXPRESSIONS
 from the_comm_app.models import PhoneCall, CommunicationInvolvement
 from provider_views import answer, alert_pickup, conference_blast, \
     pickup_connect, voicemail, transcription_handler, handle_hangup
-from sample_requests import *
+from tests.sample_requests import *
 from the_comm_app.services import find_command_in_tropo_command_list, standardize_call_info, \
     find_command_in_twilio_response
-from django.contrib.auth.models import User
-from django.test import TestCase
-import pytest
+
 
 # from private import resources
 

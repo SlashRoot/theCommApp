@@ -1,20 +1,25 @@
 from rest_framework import viewsets
 from twilio import twiml
+from the_comm_app.actions import CallBlast
 from the_comm_app.services import standardize_call_info
 from the_comm_app.call_functions import call_object_from_call_info
 from the_comm_app.models import PhoneProvider
 from rest_framework.response import Response
-
+from hendrix.experience import crosstown_traffic
 
 class AnswerViewSet(viewsets.ViewSet):
     
-    def action(self):
-        return
-    
+    def __init__(self, *args, **kwargs):
+        super(AnswerViewSet, self).__init__(*args, **kwargs)
+        self.side_effects = []
+
     @property
     def action_params(self):
         return {'name': 'Generic Answer'}
-    
+
+    def add_side_effect(self, side_effect):
+        self.side_effects.append(side_effect)
+
     def must_reject(self):
         return False
 
@@ -24,7 +29,15 @@ class AnswerViewSet(viewsets.ViewSet):
         if 'AccountSid' in request.POST:
             self.provider = PhoneProvider("Twilio")
         else:  # Ugh. TODO: Make better.  Instead of assuming Tropo, let's actually detect it.
-            self.provider = PhoneProvider("Tropo") 
+            self.provider = PhoneProvider("Tropo")
+
+    def cause_side_effects(self, runner=None):
+        for side_effect in self.side_effects:
+            if runner:
+                runner(side_effect)
+            else:
+                side_effect()
+
 
     def create(self, request):
         '''
@@ -38,7 +51,7 @@ class AnswerViewSet(viewsets.ViewSet):
         # Identify the call, saving it as a new object if necessary.
         self.call = call_object_from_call_info(call_info)
         
-        action_result = self.action(**self.action_params)
+        self.cause_side_effects()
 
 #         if not call.ended:
 #             r.say(SLASHROOT_EXPRESSIONS['public_greeting'], voice=random_tropo_voice()) #Greet them.
