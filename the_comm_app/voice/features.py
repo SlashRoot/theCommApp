@@ -84,6 +84,8 @@ class CallBlast(Feature):
 
     conference_name = None
 
+    inquiry_addendum = ""
+
 
     def __iter__(self):
         pass
@@ -127,6 +129,8 @@ class CallBlast(Feature):
                 inquiry += " %s, " % str(involvement.person.first_name)
         else:
             voice = "Allison"
+
+        inquiry += self.inquiry_addendum
 
         gather = self.line.response.addGather(
             action=self.line.get_url(self.blast_receipt),
