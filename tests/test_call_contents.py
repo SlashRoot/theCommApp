@@ -13,9 +13,9 @@ from the_comm_app.call_functions import call_object_from_call_info
 from the_comm_app.constants import INTEGRATE_FEATURES
 from the_comm_app.models import PhoneProvider
 from the_comm_app.plumbing import PhoneLine
-from the_comm_app.services import standardize_call_info
 from the_comm_app.voice.dispositions import ConferenceHoldingPattern, Voicemail
 from the_comm_app.voice.features import Feature, CallBlast
+from the_comm_app.voice.utilities import standardize_call_info
 
 
 class Dispositions(TestCase):

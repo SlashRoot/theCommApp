@@ -5,8 +5,6 @@ Attempts to be less gnostic with providers and rely instead on the implementatio
 
 import comm_settings
 from the_comm_app.models import PhoneCall, CommunicationInvolvement
-from the_comm_app.services import place_deferred_outgoing_conference_call, \
-    get_phone_calls_by_phone_number
 from django.contrib.auth.decorators import permission_required
 from django.db.models.signals import post_save
 from django.shortcuts import render
