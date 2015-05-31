@@ -1,8 +1,5 @@
-from the_comm_app.views.call_in_progress import AnswerViewSet
-from the_comm_app.actions import CallBlast
-
-#  class PhoneCall(IntendedDial):
-#  ??
+from the_comm_app.plumbing import PhoneLine
+from the_comm_app.voice.features import CallBlast
 
 
 class AnswerBlast(CallBlast):
@@ -40,7 +37,7 @@ class BusinessAnswerBlast(AnswerBlast):
         return "Very serious greeting"
 
 
-class PhoneCallAnswer(AnswerViewSet):
+class MyPhoneLine(PhoneLine):
     
     action = AnswerBlast
     

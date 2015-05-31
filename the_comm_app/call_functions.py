@@ -49,32 +49,13 @@ def get_or_create_nice_number(incoming_number):
     phone_number_object, new = PhoneNumber.objects.get_or_create(number = nice_number)
     return phone_number_object, new
 
-
-def nicefy_number(phone_number):
-    number_as_list = re.findall(r"[0-9]", phone_number) #No matter the format, grab only the numbers.
-    
-    #An unknown caller will produce a completely blank number.
-    if not number_as_list:
-        nice_number = 10000000000
-    
-    else:
-        if number_as_list[0] == '1': #If the first digit is a 1, we'll just pop it off.
-            number_as_list.pop(0)
-        pass
-        
-    if not len(number_as_list) == 10: #Now we expect to have exactly ten digits.
-        raise TypeError("I wasn't able to discern exactly ten digits from the phone number you gave me.  It was %s" % incoming_number)
-    
-
-
-    
 def call_object_from_call_info(call_info):
     '''
     Takes a standardized call info dict and extracts call objects from it. 
     '''
     #First let's get the call id of the call we're being asked about.    
     call_id = call_info['call_id']
-    
+
     #Let's see if we already know about this call.
     try:
         call = PhoneCall.objects.get(call_id=call_id) #Set call to a phone call matching the call_id we just got.
@@ -106,25 +87,13 @@ def call_object_from_call_info(call_info):
     #If not we're going to make a number for them.
     #The number can be assigned to a ContactInfo object later.
     
-    for (key, phone_number) in incoming_numbers.items(): #key will be 'caller', 'recipient', etc.  phone number will be the number.
-        phone_numbers[key + '_nice'] = nicefy_number(phone_number)
+    # for (key, phone_number) in incoming_numbers.items(): #key will be 'caller', 'recipient', etc.  phone number will be the number.
+    #     phone_numbers[key + '_nice'] = nicefy_number(phone_number)
             
-    call.from_number = phone_numbers['caller_nice']
-    call.to_number = phone_numbers['recipient_nice']
+    call.from_number = incoming_numbers['caller']
+    call.to_number = incoming_numbers['recipient']
   
     call.save()
-    
-    # Determine if there's a user with the same number as either the caller or the recipient and isolate them.    
-
-#     if phone_numbers['caller'].owner:
-#         # TODO: Handle situations where a user represents a party
-#         CommunicationInvolvement.objects.create(person=phone_numbers['caller'].owner.userprofile.user, communication=call, direction="from") 
-
-#Deprecated.  What was the point of this block?  Why might we want to create a "to" participant for an outgoing call?
-#    try:    
-#        CommunicationInvolvement.objects.create(person=phone_numbers['recipient'].owner.userprofile.user, communication=call, direction="to")
-#    except (UserProfile.DoesNotExist, AttributeError):  # Either the owner is None or the UserProfile doesn't exist.
-#        pass
     
     # If this this is the first time we've seen the call marked completed, we'll set the ended date.
     if call_info['status'] == 'completed' and not call.ended:

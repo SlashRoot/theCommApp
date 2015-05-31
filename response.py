@@ -13,7 +13,7 @@ from django.utils.datastructures import MultiValueDictKeyError
 # from what_apps.contact.models import PhoneProvider, PhoneNumber
 import json
 import logging
-from tropo import Tropo
+
 # import requests
 
 

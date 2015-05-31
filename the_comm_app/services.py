@@ -17,11 +17,6 @@ from twilio.rest import TwilioRestClient
 # from what_apps.contact.models import PhoneProvider, PhoneNumber
 import json
 import logging
-from tropo import Session
-
-
-
-
 
 comm_logger = logging.getLogger('comm')
 
@@ -163,7 +158,7 @@ def discern_destination_from_tropo_request(request):
     return PhoneNumber.objects.get(id=number_id), PhoneCall.objects.get(id=call_id), is_green_phone
 
 
-def standardize_call_info(request, provider=None):
+def standardize_call_info(call_dict, provider=None):
     '''
     Takes a provider object, figures out the important details of the call (you know, caller id and whatnot) and return it as a dictionary.s
     '''
@@ -171,13 +166,14 @@ def standardize_call_info(request, provider=None):
         pass #TODO: Some logic to detect the provider.
     
     if provider.name == "Twilio":
-        account_id = request.POST['AccountSid']
-        call_id = request.POST['CallSid']
-        from_caller_id = request.POST['From']
-        to_caller_id = request.POST['To']
-        status = request.POST['CallStatus']
+        account_id = call_dict['AccountSid']
+        call_id = call_dict['CallSid']
+        from_caller_id = call_dict['From']
+        to_caller_id = call_dict['To']
+        status = call_dict['CallStatus']
     
     if provider.name == "Tropo":
+        raise NotImplementedError("No Tropo for now.")
         '''
         Tropo is kinda funny - it doesn't always let us grab the session info via their Session object (which we probably can help them fix).
         '''

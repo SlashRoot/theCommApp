@@ -71,7 +71,7 @@ class CommunicationInvolvement(models.Model):
 
 
 class PhoneProvider(object):
-    name = models.CharField(max_length=40, unique=True)
+    # name = models.CharField(max_length=40, unique=True)
     
     CHOICES_DICT = {
                "Twilio": 0,
@@ -96,9 +96,9 @@ class PhoneProvider(object):
             from twilio import twiml
             return twiml.Response()
 
-        if self.name == "Tropo":
-            from tropo import Tropo
-            return Tropo()
+        # if self.name == "Tropo":
+        #     from tropo import Tropo
+        #     return Tropo()
 
 
 
@@ -185,7 +185,7 @@ class PhoneCall(Communication):
             caller = self.from_user()
             announcement = "Call from %s. " % str(caller.get_full_name())
         else: #We know about the phone number, but we don't have a ContactInfo / userprofile for it.
-            announcement = comm_settings.SLASHROOT_EXPRESSIONS['unknown_caller']
+            announcement = 'unknown_caller'
         return announcement
 
     def has_begun(self):
