@@ -19,10 +19,6 @@ class ConnectCallToConference(object):
         self.conference.receive(self.calls_to_connect)
 
 
-class ConferenceHoldingPattern(object):
-    pass
-
-
 class Feature(object):
     '''
     1. You call someone.

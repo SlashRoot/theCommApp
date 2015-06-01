@@ -54,7 +54,8 @@ class ConferenceHoldingPattern(VoiceCallDisposition):
         dial.addConference(
             self.conference_name,
             waitUrl=self.hold_music,
-            waitMethod="GET"
+            waitMethod="GET",
+            record="record-from-start",
         )
 
         return INTEGRATE_FEATURES
