@@ -4,21 +4,16 @@ while the caller waits for a Feature or NOBODY_HOME.
 '''
 
 import functools
-from django.core.urlresolvers import reverse
 from twilio.rest import TwilioRestClient
-from the_comm_app.constants import NOBODY_HOME, INTEGRATE_FEATURES
+from the_comm_app.constants import NO_ANSWER, INTEGRATE_FEATURES
 import logging
+
 logger = logging.getLogger(__name__)
 
 
-def phase_of_call(name):
-    def phase_decorator(name, func):
-        func.call_phase_name = name
-        return func
-    return functools.partial(phase_decorator, name)
-
-
 class VoiceCallDisposition(object):
+
+    slug = "voicemail"
 
     def __init__(self, line):
         self.line = line
@@ -26,39 +21,27 @@ class VoiceCallDisposition(object):
 
 class ConferenceHoldingPattern(VoiceCallDisposition):
 
+    slug = "conference_holding_pattern"
     hold_music = None
     conference_name = None
     digits_to_join = range(10)
 
     def proceed(self):
-        gather = self.line.response.addGather(
-            action=self.line.get_url(self.join),
-            numDigits=1,
-        )
-
-        return gather
-
-    @phase_of_call('conference_caller_join')
-    def join(self):
-
-        digits_pressed = self.line.request.POST['Digits']
-        if int(digits_pressed) not in self.digits_to_join:
-            self.line.say('You have elected not to join the conference.')
-            return NOBODY_HOME
-
         dial = self.line.response.addDial()
 
-        self.conference_name = self.conference_name or self.line.conference_name or self.line.call.call_id
-        logger.info("Putting %s into conference %s" % (self.line.request.POST['From'],
-                                                       self.conference_name))
         dial.addConference(
-            self.conference_name,
+            self.conference_id,
             waitUrl=self.hold_music,
             waitMethod="GET",
             record="record-from-start",
         )
 
         return INTEGRATE_FEATURES
+
+
+    @property
+    def conference_id(self):
+        return self.conference_name or self.line.conference_name or self.line.call.call_id
 
 
 class Voicemail(VoiceCallDisposition):
@@ -84,7 +67,6 @@ class Voicemail(VoiceCallDisposition):
         else:
             return False
 
-    @phase_of_call('voicemail')
     def proceed(self):
         self.line.say(self.prompt)
         self.line.response.record(

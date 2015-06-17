@@ -1,20 +1,24 @@
+from collections import OrderedDict
+import logging
+
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 from twilio.rest import TwilioRestClient
-from the_comm_app.constants import NOBODY_HOME, INTEGRATE_FEATURES
+from django.views.generic import View
 
+from the_comm_app.constants import INTEGRATE_FEATURES, NO_ANSWER
 from the_comm_app.voice.utilities import standardize_call_info
 from the_comm_app.call_functions import call_object_from_call_info
 from the_comm_app.models import PhoneProvider
-from django.views.generic import View
 
-import logging
 logger = logging.getLogger(__name__)
 
 
+phase_registry = {}
+
+
 class PhoneLine(View):
-    '''
+    """
     Think of this as a view (ie, you generally pipe a URL to it; it handles Requests and issues Responses).
 
     Story:
@@ -24,34 +28,62 @@ class PhoneLine(View):
     It may ring a few times and then somebody may pick up.
     It may read you the weather report from Kalamazoo.
     It may just hang up on you.
-    '''
+    """
     name = "Generic Phone Line"
     runner = None
 
     voice = None
     language = None
+    provider = None
 
     domain = None
     protocol = None
 
+    default_call_maker = None
     features = ()
+    disposition = ()
+
     greeting_text = "This is a phone line powered by theCommApp.  To change this message, set the greeting method on your phone line class."
+
+    conference_name = None
+    pickup_conclusion = None
 
     def __init__(self, *args, **kwargs):
         super(PhoneLine, self).__init__(*args, **kwargs)
-        self.phase_registry = {'pickup': self.pickup_phase,
-                              }
 
-        self.feature_list = []
+        self.call_info = {}
+        self.call_makers = {}
+        if self.default_call_maker:
+            self.add_feature(self.default_call_maker, default_call_maker=True)
+
+        self.feature_dict = OrderedDict()
         for f in self.features:
             self.add_feature(f)
 
-        self.disposition_list = []
+        self.spent_dispositions = []
+        self.disposition_dict = OrderedDict()
         for d in self.disposition:
             self.add_disposition(d)
 
-        if self.nobody_home:
-            self.nobody_home_disposition = self.nobody_home(self)
+    def call_with_runner(self, thing_to_call,
+                         runner=None,
+                         prefer_async=False,
+                         require_async=False):
+        runner = runner or self.runner
+        if runner:
+            runner(thing_to_call)
+        else:
+            thing_to_call()
+
+    def handle_feature_progress(self, feature):
+        if feature.status == NO_ANSWER:
+            slug, disposition = self.next_disposition()
+            if disposition:
+                self.redirect_call(disposition.proceed)
+            else:
+                return
+
+    # Information
 
     @property
     def twilio_creds(self):
@@ -62,26 +94,108 @@ class PhoneLine(View):
         # TODO: Multiple providers
         return TwilioRestClient(*self.twilio_creds)
 
-    def add_feature(self, feature_class):
+    @property
+    def from_number(self):
+        try:
+            return self.number_to_use_for_outgoing_calls
+        except AttributeError:
+            raise TypeError("Features utilizing outgoing calls require the PhoneLine object to have number_to_use_for_outgoing_calls to be set.")
+
+    def get_url(self, phase_method):
+        class_slug = phase_method.__self__.slug
+        phase_name = "%s__%s" % (class_slug, phase_method.__name__)
+
+        if not class_slug in self.disposition_dict.keys() + self.feature_dict.keys():
+            raise AttributeError("The method %s of %s has not been added as a phase to phone line %s." % (phase_method.__name__, phase_method.__self__.__class__, self.name))
+
+        local_url = reverse(self.name, args=[phase_name])
+        full_url = "%s//%s%s" % (self.protocol, self.domain, local_url)
+        return full_url
+
+    def get_phase_from_name(self, phase_name):
+        # First, assume the the phase is declared on this call.
+        phase_method = getattr(self, phase_name, None)
+
+        if not phase_method:
+            try:
+                call_part_name, method_name = phase_name.split('__')
+            except ValueError:
+                raise TypeError("%s does not describe a method on the phone line, nor does it conform to the format for a phase on a phone call part." % phase_name)
+
+            # Check dispositions first.
+            call_part = self.disposition_dict.get(call_part_name, None)
+
+            # Then features.
+            if not call_part:
+                call_part = self.feature_dict[call_part_name]
+
+            if not call_part:
+                raise TypeError("%s does not describe a method on the phone line or on any phone call part." % phase_name)
+
+            phase_method = getattr(call_part, method_name)
+
+        return phase_method
+
+    def next_disposition(self):
+        slug = disposition = None
+        for slug, disposition in self.disposition_dict.items():
+            if slug in self.spent_dispositions:
+                slug = disposition = None
+                continue
+            else:
+                self.spent_dispositions.append(slug)
+                break
+        return slug, disposition
+
+    # Adherence
+
+    def adhere_call(self, call_info=None):
+        call_info = call_info or self.call_info
+        self.call = call_object_from_call_info(call_info)
+        return self.call
+
+    def adhere_response(self):
+        if not self.provider:
+            self.adhere_provider()
+        self.response = self.provider.get_response_object()
+        return self.response
+
+    def adhere_provider(self):
+        # Hard-coding Twilio for now.
+        self.provider = PhoneProvider("Twilio")
+        return self.provider
+
+    def add_feature(self, feature_class, default_call_maker=False):
         feature = feature_class(self)
-        self.feature_list.append(feature)
-        self.add_phases_from_object(feature)
+        self.feature_dict[feature.slug] = feature
+        # self.add_phases_from_object(feature)
+
+        if hasattr(feature_class, "place_call"):
+            # This is a call maker.
+
+            if default_call_maker:
+                feature_key = None
+            else:
+                feature_key = feature_class.slug
+            self.call_makers[feature_key] = feature
+            logger.info("Added call maker %s to phone line %s" % (feature_class.slug, self.name))
+
+            if not self.call_makers.get(None):
+                logger.warning("Added call maker %s, but there is still not default." % feature_class.slug)
+
         return feature
 
-    def add_phase(self, name, callable_obj):
-        if name in self.phase_registry:
-            logger.warning("Overriding %s, which was already registered as phase %s" % (name, self.phase_registry[name]))
-        else:
-            logger.info("Adding phase %s (%s)" % (name, callable_obj))
+    def add_disposition(self, disposition_class):
+        disposition = disposition_class(self)
+        self.disposition_dict[disposition.slug] = disposition
+        # self.add_phases_from_object(disposition)
+        return disposition
 
-        self.phase_registry[name] = callable_obj
+    def integrate_features(self):
+        for feature in self.feature_dict.values():
+            feature.start()
 
-    def call_with_runner(self, thing_to_call, runner=None, prefer_runner=False):
-        runner = runner or self.runner
-        if runner:
-            runner(thing_to_call)
-        else:
-            thing_to_call()
+    # ACTIONS
 
     def say(self, message, voice=None, language=None, **kwargs):
         voice = voice or self.voice
@@ -94,50 +208,57 @@ class PhoneLine(View):
         '''
         pass
 
-    def get_url(self, phase_method):
-        try:
-            phase_name = phase_method.call_phase_name
-        except AttributeError:
-            "%s does not have a phase name." % phase_method
-
-        local_url = reverse(self.name, args=[phase_name])
-        full_url = "%s//%s%s" % (self.protocol, self.domain, local_url)
-        return full_url
-
     def greeting(self):
         self.say(self.greeting_text)
 
-    @property
-    def from_number(self):
+
+    ########
+    # HTTP #
+    ########
+
+    def post(self, request, phase_name="pickup"):
+        '''
+        The first response to a basic incoming call.  Can take requests from multiple providers.
+        '''
+        self.protocol = self.protocol or request.build_absolute_uri().split('/')[0]
+        self.domain = self.domain or request.build_absolute_uri().split('/')[1]
+
+        self.adhere_provider()
+        self.adhere_response()
+
+        phase_method = self.get_phase_from_name(phase_name)
+
+        #Now we need a call object with the appropriate details, regardless of the provider.
+        call_info = standardize_call_info(request.POST, self.provider)
+
+        # Identify the call, saving it as a new object if necessary.
+        self.call = self.adhere_call(call_info)
+
+        phase_result = phase_method()
+
+        if phase_result is INTEGRATE_FEATURES:
+            self.integrate_features()
+
+        return HttpResponse(self.response)
+
+    def place_call(self, call_maker=None, *args, **kwargs):
+        call_maker = self.call_makers.get(call_maker)
+
         try:
-            return self.number_to_use_for_outgoing_calls
+            call_maker.place_call(*args, **kwargs)
         except AttributeError:
-            raise TypeError("Features utilizing outgoing calls require the PhoneLine object to have number_to_use_for_outgoing_calls to be set.")
+            if not call_maker:
+                raise ValueError("This phone line has no default call maker, and no call maker was specified.")
+            else:
+                raise
 
-    @property
-    def disposition(self):
-        return self.disposition_list
+    def redirect_call(self, phase_method):
+        url = self.get_url(phase_method)
+        self.client.calls.update(self.call.call_id, url=url)
 
-    @disposition.setter
-    def disposition(self, disposition_class):
-        raise RuntimeError("Disposition setter is currently disabled.")
-        self.disposition_list.append(disposition_class(self))
-
-    def add_phases_from_object(self, object_with_phases):
-        possible_phases = [a for a in dir(object_with_phases) if not a.startswith('_')]
-        for candidate in possible_phases:
-            try:
-                phase_method = getattr(object_with_phases, candidate)
-                phase_name = getattr(object_with_phases, candidate).call_phase_name
-                self.add_phase(phase_name, phase_method)
-            except AttributeError:
-                pass
-
-    def add_disposition(self, disposition_class):
-        disposition = disposition_class(self)
-        self.disposition_list.append(disposition)
-        self.add_phases_from_object(disposition)
-        return disposition
+    ##########
+    # Phases #
+    ##########
 
     @property
     def nobody_home(self):
@@ -147,79 +268,31 @@ class PhoneLine(View):
 
         A common use case is to redirect to voicemail.
         '''
-        try:
-            nobody_home_method = self.phase_registry[NOBODY_HOME]
-            return nobody_home_method
-        except KeyError:
-            return None
-
-    @nobody_home.setter
-    def nobody_home(self, disposition_class):
-        self.add_phase(NOBODY_HOME, disposition_class(self))
-
-    def determine_provider(self, request=None):
-        # Hard-coding Twilio for now.
-        self.provider = PhoneProvider("Twilio")
-
-    def integrate_features(self):
-        for feature in self.feature_list:
-            feature.start()
-
-    def post(self, request, phase_name="pickup"):
-        '''
-        The first response to a basic incoming call.  Can take requests from multiple providers.
-        '''
-        self.protocol = self.protocol or request.build_absolute_uri().split('/')[0]
-        self.domain = self.domain or request.build_absolute_uri().split('/')[1]
-
-        try:
-            phase_method = self.phase_registry[phase_name]
-        except KeyError:
-            logger.error("%s does not have a %s phase.  Running pickup." % (self.name, phase_name))
-            # Lookie here.  Great place to put a breakpoint.
-            phase_method = self.pickup_phase
-
-        self.determine_provider(request)
-        self.response = self.provider.get_response_object()
-
-        #Now we need a call object with the appropriate details, regardless of the provider.
-        call_info = standardize_call_info(request.POST, self.provider)
-
-        # Identify the call, saving it as a new object if necessary.
-        self.call = call_object_from_call_info(call_info)
-
-        phase_result = phase_method()
-
-        if phase_result is INTEGRATE_FEATURES:
-            self.integrate_features()
-
-        return HttpResponse(self.response)
-
-    ##########
-    # Phases #
-    ##########
+        return self.nobody_home_func
 
     def customize_disposition(self, result):
         return result
 
-    def pickup_phase(self):
+    def pickup(self):
 
         if not self.call.ended and self.greeting:
             self.greeting()
 
-        for d in self.disposition_list:
-            try:
-                result = d.proceed()
-                self.customize_disposition(result)
+        slug, disposition = self.next_disposition()
 
-                # TODO: Deal with the case where no feature answers
-                # if result is NOBODY_HOME:
-                #     self.nobody_home()
+        if disposition is None:
+            logger.warning("PhoneLine had no dispositions remaining.  That's weird!")
+        else:
+            try:
+                result = disposition.proceed()
             except AttributeError:
-                if hasattr(d, 'proceed'):
+                if hasattr(disposition, 'proceed'):
                     raise
                 else:
                     raise TypeError("A Disposition must expose a 'proceed' method.")
 
-    def voicemail_phase(self):
+        return result or self.pickup_conclusion
+
+
+    def voicemail(self):
         pass

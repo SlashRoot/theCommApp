@@ -1,20 +1,14 @@
 import json
 from urlparse import parse_qs
 import xml
-from django.core.urlresolvers import reverse
+
 from django.test import TestCase
-from django.test.client import RequestFactory
 
 from httplib2 import Response as HttpResponse
 import mock
 from rest_framework.test import APITestCase, APIRequestFactory
 
-from tests.sample_requests import TYPICAL_TWILIO_REQUEST, TYPICAL_TWILIO_VOICEMAIL_REQUEST
-from the_comm_app.voice.dispositions import ConferenceHoldingPattern, Voicemail
-from the_comm_app.voice.features import ConnectCallToConference
-from the_comm_app.call_functions import call_object_from_call_info
-from the_comm_app.models import PhoneProvider
-from the_comm_app.voice.utilities import standardize_call_info
+from tests.sample_requests import TYPICAL_TWILIO_REQUEST
 from the_comm_app.sms import BlastToText
 from the_comm_app.plumbing import PhoneLine
 

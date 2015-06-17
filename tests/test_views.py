@@ -1,9 +1,7 @@
-from django.core.urlresolvers import reverse
-from rest_framework.test import APITestCase
 from rest_framework.test import APIRequestFactory
 
 from tests.sample_requests import TYPICAL_TWILIO_REQUEST
-from the_comm_app.voice.features import Feature
+
 from the_comm_app.models import PhoneCall
 from the_comm_app.plumbing import PhoneLine
 
