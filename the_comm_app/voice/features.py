@@ -129,21 +129,21 @@ class CallBlast(Feature):
             self.line.client.calls.create(
                 url=self.line.get_url(self.blaster),
                 to=r,
-                from_=self.line.call.from_number
+                from_=self.line.number_to_use_for_outgoing_calls
             )
 
         for r in self.green_phones:
             self.line.client.calls.create(
                 url=self.line.get_url(self.connect),
                 to=r,
-                from_=self.line.call.from_number
+                from_=self.line.number_to_use_for_outgoing_calls
             )
 
         for r in self.clients:
             self.line.client.calls.create(
                 url=self.line.get_url(self.connect),
                 to="client:%s" % r,
-                from_=self.line.call.from_number
+                from_=self.line.number_to_use_for_outgoing_calls
             )
 
     def follow_up(self):
