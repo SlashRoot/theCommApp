@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class VoiceCallDisposition(object):
 
     slug = "voicemail"
+    url_params = None
 
     def __init__(self, line):
         self.line = line
@@ -41,7 +42,7 @@ class ConferenceHoldingPattern(VoiceCallDisposition):
 
     @property
     def conference_id(self):
-        return self.conference_name or self.line.conference_name or self.line.call.call_id
+        return self.conference_name or self.line.conference_id
 
 
 class Voicemail(VoiceCallDisposition):

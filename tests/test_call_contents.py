@@ -1,5 +1,6 @@
 from unittest.case import skip
 from urlparse import parse_qs
+import urlparse
 import xml
 from django.core.urlresolvers import reverse
 
@@ -203,3 +204,11 @@ class TestVoiceFeatures(TestCase):
         self.assertEqual(first_verb.name, "Gather")
         says = first_verb.xml().findall("Say")
         self.assertEqual(says[0].text, self.blaster.inquiry)
+
+    def test_conference_id_included_in_blast_url(self):
+        self.phone_line = self.TestPhoneLine()
+        self.place_call_to_line(ConferenceBlast)
+        url = self.request_bodies[0]['Url'][0]
+        parsed = urlparse.urlparse(url)
+        q = parsed.query
+        self.assertIn(self.phone_line.conference_id, q)

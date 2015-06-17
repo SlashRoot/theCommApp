@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import logging
+import random
 
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
@@ -102,14 +103,22 @@ class PhoneLine(View):
             raise TypeError("Features utilizing outgoing calls require the PhoneLine object to have number_to_use_for_outgoing_calls to be set.")
 
     def get_url(self, phase_method):
-        class_slug = phase_method.__self__.slug
-        phase_name = "%s__%s" % (class_slug, phase_method.__name__)
+        call_part = phase_method.__self__
+        part_slug = call_part.slug
+        phase_name = "%s__%s" % (part_slug, phase_method.__name__)
 
-        if not class_slug in self.disposition_dict.keys() + self.feature_dict.keys():
+        if not part_slug in self.disposition_dict.keys() + self.feature_dict.keys():
+
             raise AttributeError("The method %s of %s has not been added as a phase to phone line %s." % (phase_method.__name__, phase_method.__self__.__class__, self.name))
 
         local_url = reverse(self.name, args=[phase_name])
         full_url = "%s//%s%s" % (self.protocol, self.domain, local_url)
+
+        if call_part.url_params:
+            full_url += "?"
+            for k, v in call_part.url_params.items():
+                full_url += "%s=%s&" % (k, v)
+
         return full_url
 
     def get_phase_from_name(self, phase_name):
@@ -146,6 +155,16 @@ class PhoneLine(View):
                 self.spent_dispositions.append(slug)
                 break
         return slug, disposition
+
+    @property
+    def conference_id(self):
+        return self.conference_name or self.conference_name_from_random_word()
+
+    def conference_name_from_random_word(self):
+        word_file = "/usr/share/dict/words"
+        words = open(word_file).read().splitlines()
+        self.conference_name = random.choice(words)
+        return self.conference_name
 
     # Adherence
 
@@ -223,6 +242,10 @@ class PhoneLine(View):
         self.protocol = self.protocol or request.build_absolute_uri().split('/')[0]
         self.domain = self.domain or request.build_absolute_uri().split('/')[1]
 
+        if request.GET:
+            if request.GET.get('conference_id', None):
+                self.conference_name = request.GET['conference_id']
+
         self.adhere_provider()
         self.adhere_response()
 
@@ -279,19 +302,20 @@ class PhoneLine(View):
             self.greeting()
 
         slug, disposition = self.next_disposition()
+        disposition_result = None
 
         if disposition is None:
             logger.warning("PhoneLine had no dispositions remaining.  That's weird!")
         else:
             try:
-                result = disposition.proceed()
+                disposition_result = disposition.proceed()
             except AttributeError:
                 if hasattr(disposition, 'proceed'):
                     raise
                 else:
                     raise TypeError("A Disposition must expose a 'proceed' method.")
 
-        return result or self.pickup_conclusion
+        return disposition_result or self.pickup_conclusion
 
 
     def voicemail(self):

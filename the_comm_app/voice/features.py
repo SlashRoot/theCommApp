@@ -1,6 +1,7 @@
 import logging
 import time
 from the_comm_app.constants import DID_NOT_RUN, FINISHED, NO_ANSWER
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ class Feature(object):
     prefer_async = False
     require_async = False
     slug = "set_this"
+    url_params = None
 
     def __init__(self, line):
         self.line = line
@@ -127,21 +129,21 @@ class CallBlast(Feature):
             self.line.client.calls.create(
                 url=self.line.get_url(self.blaster),
                 to=r,
-                from_=self.line.from_number
+                from_=self.line.call.from_number
             )
 
         for r in self.green_phones:
             self.line.client.calls.create(
                 url=self.line.get_url(self.connect),
                 to=r,
-                from_=self.line.from_number
+                from_=self.line.call.from_number
             )
 
         for r in self.clients:
             self.line.client.calls.create(
                 url=self.line.get_url(self.connect),
                 to="client:%s" % r,
-                from_=self.line.request.POST['From']
+                from_=self.line.call.from_number
             )
 
     def follow_up(self):
@@ -191,7 +193,11 @@ class ConferenceBlast(CallBlast):
 
     @property
     def conference_id(self):
-        return self.conference_name or self.line.conference_name or self.line.call.call_id
+        return self.conference_name or self.line.conference_id
+
+    @property
+    def url_params(self):
+        return {'conference_id': self.conference_id}
 
     def current_participants(self):
         return self.line.client.participants(self.conference_id).list()
