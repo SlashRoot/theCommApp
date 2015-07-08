@@ -15,7 +15,7 @@ from the_comm_app.constants import INTEGRATE_FEATURES, NO_ANSWER
 from the_comm_app.models import PhoneProvider
 from the_comm_app.plumbing import PhoneLine
 from the_comm_app.voice.dispositions import ConferenceHoldingPattern, Voicemail
-from the_comm_app.voice.features import Feature, CallBlast, ConferenceBlast
+from the_comm_app.voice.voice_features import Feature, CallBlast, ConferenceBlast
 from the_comm_app.voice.utilities import standardize_call_info
 
 
@@ -32,16 +32,18 @@ class Dispositions(TestCase):
         factory = RequestFactory()
         request = factory.post('/phone_line/', TYPICAL_TWILIO_REQUEST)
         phone_line = PhoneLine()
+
+        ConferenceHoldingPattern.hold_music = "test_hold_music"
         phone_line.add_disposition(ConferenceHoldingPattern)
         response = phone_line.post(request)
         twiml_response = xml.etree.ElementTree.fromstring(response._container[0])
-        gathers = twiml_response.findall('Gather')
+        dials = twiml_response.findall('Dial')
 
-        gather_action = gathers[0].attrib['action']
-        phase_url = phone_line.get_url(
-            phone_line.disposition_dict[ConferenceHoldingPattern.slug].join)
+        conference = dials[0]._children[0]
+        hold_music = conference.attrib['waitUrl']
 
-        self.assertEqual(gather_action, phase_url)
+
+        self.assertEqual(hold_music, "test_hold_music")
 
     def test_nobody_redirects_to_voicemail(self):
         factory = RequestFactory()

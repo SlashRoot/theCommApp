@@ -7,7 +7,8 @@ from django.http import HttpResponse
 from twilio.rest import TwilioRestClient
 from django.views.generic import View
 
-from the_comm_app.constants import INTEGRATE_FEATURES, NO_ANSWER
+from the_comm_app.constants import INTEGRATE_FEATURES, DID_NOT_RUN, FINISHED, NO_ANSWER, ALREADY_RAN
+import random
 from the_comm_app.voice.utilities import standardize_call_info
 from the_comm_app.call_functions import call_object_from_call_info
 from the_comm_app.models import PhoneProvider
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 phase_registry = {}
 
 
-class PhoneLine(View):
+class PhoneLine(object):
     """
     Think of this as a view (ie, you generally pipe a URL to it; it handles Requests and issues Responses).
 
@@ -318,5 +319,76 @@ class PhoneLine(View):
         return disposition_result or self.pickup_conclusion
 
 
-    def voicemail(self):
+class Feature(object):
+    '''
+    1. You call someone.
+    2. Some batty but beautiful behavior happens (or at least starts happening).
+    3. You get a Response ("Thanks for calling the chocobo farm, etc.")
+
+    This class is step 2.
+    '''
+    # __metaclass__ = RegistryType
+
+    has_started = False
+    status = None
+    no_go = False
+    prefer_async = False
+    require_async = False
+    slug = "set_this"
+    url_params = None
+    run_only_once = True
+
+    def __init__(self, line):
+        self.line = line
+
+    def __add__(self, name):
         pass
+
+    def __iter__(self):
+        raise StopIteration
+
+    def __call__(self):
+        return self.start()
+
+    def last_stop_before_vegas(self):
+        '''
+        A place to decide to set no_go to True.
+        '''
+        pass
+
+    def start(self):
+
+        if self.has_started and self.run_only_once:
+            return ALREADY_RAN
+
+        self.has_started = True
+
+        self.last_stop_before_vegas()
+
+        if not self.no_go:
+            return self.line.call_with_runner(self.run,
+                                       self.prefer_async,
+                                       self.require_async
+                                       )
+        else:
+            self.status = FINISHED
+            return DID_NOT_RUN
+
+    def run(self):
+        '''
+        The main method to override.
+        The Feature will not be regarded as finished until is_finished == True.
+        '''
+        self.status = FINISHED
+
+    def report(self, status=None):
+        '''
+        Pass information back to the PhoneLine object, optionally changing this Feature's state.
+        '''
+        if status:
+            self.status = status
+        self.line.handle_feature_progress(self)
+
+    @property
+    def is_finished(self):
+        return self.status == FINISHED

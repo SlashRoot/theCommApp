@@ -1,5 +1,5 @@
 from the_comm_app.plumbing import PhoneLine
-from the_comm_app.voice.features import CallBlast
+from the_comm_app.voice.voice_features import CallBlast
 
 
 class AnswerBlast(CallBlast):

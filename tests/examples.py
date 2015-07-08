@@ -1,6 +1,7 @@
+from django.views.generic import View
 from the_comm_app.plumbing import PhoneLine
 from the_comm_app.voice.dispositions import ConferenceHoldingPattern, Voicemail
-from the_comm_app.voice.features import CallBlast
+from the_comm_app.voice.voice_features import CallBlast
 
 
 class ExampleCallBlast(CallBlast):
@@ -10,7 +11,7 @@ class ExampleCallBlast(CallBlast):
                   '+13335554444',
                   ]
 
-class ExamplePhoneLine(PhoneLine):
+class ExamplePhoneLine(PhoneLine, View):
 
     name = "example_phone_line"
 

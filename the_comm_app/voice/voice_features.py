@@ -1,79 +1,9 @@
 import logging
 import time
-from the_comm_app.constants import DID_NOT_RUN, FINISHED, NO_ANSWER
-import random
+from the_comm_app.constants import NO_ANSWER
+from the_comm_app.plumbing import Feature
 
 logger = logging.getLogger(__name__)
-
-
-class Feature(object):
-    '''
-    1. You call someone.
-    2. Some batty but beautiful behavior happens (or at least starts happening).
-    3. You get a Response ("Thanks for calling the chocobo farm, etc.")
-
-    This class is step 2.
-    '''
-    # __metaclass__ = RegistryType
-
-    has_started = False
-    status = None
-    no_go = False
-    prefer_async = False
-    require_async = False
-    slug = "set_this"
-    url_params = None
-
-    def __init__(self, line):
-        self.line = line
-
-    def __add__(self, name):
-        pass
-
-    def __iter__(self):
-        raise StopIteration
-
-    def __call__(self):
-        return self.start()
-
-    def last_stop_before_vegas(self):
-        '''
-        A place to decide to set no_go to True.
-        '''
-        pass
-
-    def start(self):
-        self.has_started = True
-
-        self.last_stop_before_vegas()
-
-        if not self.no_go:
-            return self.line.call_with_runner(self.run,
-                                       self.prefer_async,
-                                       self.require_async
-                                       )
-        else:
-            self.status = FINISHED
-            return DID_NOT_RUN
-
-    def run(self):
-        '''
-        The main method to override.
-        The Feature will not be regarded as finished until is_finished == True.
-        '''
-        self.status = FINISHED
-
-    def report(self, status=None):
-        '''
-        Pass information back to the PhoneLine object, optionally changing this Feature's state.
-        '''
-        if status:
-            self.status = status
-        self.line.handle_feature_progress(self)
-
-    @property
-    def is_finished(self):
-        return self.status == FINISHED
 
 
 class CallBlast(Feature):

@@ -1,4 +1,5 @@
 from twilio.rest import TwilioRestClient
+from the_comm_app.plumbing import Feature
 
 
 class BlastToText(object):
@@ -22,3 +23,8 @@ class BlastToText(object):
                                         from_=self.from_number,
                                         body=self.message
             )
+
+
+class SMSReceiver(Feature):
+
+    pass

@@ -4,7 +4,7 @@ from rest_framework.test import APITestCase
 
 from hendrix.utils.test_utils import AsyncTestMixin
 from the_comm_app.plumbing import PhoneLine
-from the_comm_app.voice.features import Feature
+from the_comm_app.voice.voice_features import Feature
 
 
 try:

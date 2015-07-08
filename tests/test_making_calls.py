@@ -1,13 +1,14 @@
+from django.views.generic import View
 from httplib2 import Response
 from django.test import TestCase
 import mock
 from the_comm_app.plumbing import PhoneLine
-from the_comm_app.voice.features import CallMaker, CallMakerFromCallers
+from the_comm_app.voice.voice_features import CallMaker, CallMakerFromCallers
 from urlparse import parse_qs
 import json
 
 
-class SamplePhoneLine(PhoneLine):
+class SamplePhoneLine(PhoneLine, View):
     twilio_sid = 'some_twilio_sid'
     twilio_auth = 'some_twilio_auth'
     number_to_use_for_outgoing_calls = "+15557779999"
